@@ -53,14 +53,13 @@ jobs:
       - name: Generate native Android project
         run: npx expo prebuild --platform android --no-install
 
-      - name: Cache Gradle
-        uses: actions/cache@v4
+      # Provisions Gradle and caches dependencies + the wrapper download, so a
+      # flaky day on services.gradle.org cannot fail an otherwise good build.
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
         with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ hashFiles('android/**/*.gradle*', 'android/gradle/wrapper/gradle-wrapper.properties') }}
-          restore-keys: gradle-
+          cache-read-only: false
+          validate-wrappers: false
 
       - name: Build APK
         working-directory: android
