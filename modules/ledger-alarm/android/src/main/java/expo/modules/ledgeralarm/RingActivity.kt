@@ -164,15 +164,16 @@ class RingActivity : Activity() {
     return root
   }
 
-  private fun actionButton(label: String, background: String, textColor: String, onClick: () -> Unit): Button =
+  private fun actionButton(label: String, fill: String, textColor: String, onClick: () -> Unit): Button =
     Button(this).apply {
       text = label
       isAllCaps = false
       textSize = 16f
       typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
       setTextColor(Color.parseColor(textColor))
+      setBackgroundColor(Color.TRANSPARENT)
       background = android.graphics.drawable.GradientDrawable().apply {
-        setColor(Color.parseColor(background))
+        setColor(Color.parseColor(fill))
         cornerRadius = dp(18).toFloat()
       }
       setOnClickListener { onClick() }

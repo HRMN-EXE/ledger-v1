@@ -43,7 +43,7 @@ object LedgerNotifications {
 
   private fun attributes(priority: String) = AudioAttributes.Builder()
     .setUsage(if (priority == "alarm") AudioAttributes.USAGE_ALARM else AudioAttributes.USAGE_NOTIFICATION)
-    .setContentType(if (priority == "alarm") AudioAttributes.CONTENT_TYPE_SONIC else AudioAttributes.CONTENT_TYPE_SONIFICATION)
+    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
     .build()
 
   fun resourceId(context: Context, name: String): Int =

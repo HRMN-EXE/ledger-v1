@@ -124,7 +124,7 @@ class RingService : Service() {
   private fun startSound(alarm: AlarmPlan) {
     val attributes = AudioAttributes.Builder()
       .setUsage(AudioAttributes.USAGE_ALARM)
-      .setContentType(AudioAttributes.CONTENT_TYPE_SONIC)
+      .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
       .build()
 
     val id = LedgerNotifications.resourceId(this, "ledger_alarm")
