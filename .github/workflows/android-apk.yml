@@ -88,8 +88,9 @@ jobs:
           say() { echo "$@"; echo "$@" >> "$LOG"; }
 
           say "APK: $APK ($(du -h "$APK" | cut -f1))"
-          say "--- alarm sounds inside the APK ---"
-          unzip -l "$APK" | grep -E "res/raw/ledger_(alarm|chime|nudge)\.wav" | tee -a "$LOG"
+          say "--- every .wav / raw / ledger entry in the APK ---"
+          unzip -l "$APK" | grep -i -E "\.wav|res/raw|ledger" | tee -a "$LOG" || true
+          say "--- end of listing ---"
 
           AAPT=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 2>/dev/null | tail -n1 || true)
           if [ -n "$AAPT" ]; then
@@ -103,6 +104,13 @@ jobs:
           fi
 
           fail=0
+          if unzip -l "$APK" | grep -qi "\.wav"; then
+            say "alarm sounds present"
+          else
+            say "MISSING: no .wav inside the APK at all"
+            fail=1
+          fi
+
           for PERM in USE_FULL_SCREEN_INTENT SCHEDULE_EXACT_ALARM USE_EXACT_ALARM RECEIVE_BOOT_COMPLETED WAKE_LOCK FOREGROUND_SERVICE FOREGROUND_SERVICE_MEDIA_PLAYBACK POST_NOTIFICATIONS; do
             if printf '%s' "$PERMS" | grep -q "$PERM"; then
               say "permission ok: $PERM"
