@@ -64,8 +64,19 @@ jobs:
       - name: Build APK
         working-directory: android
         run: |
+          set -o pipefail
           chmod +x gradlew
-          ./gradlew --no-daemon assembleRelease
+          ./gradlew --no-daemon --stacktrace assembleRelease 2>&1 | tee gradle.log
+
+      # Gradle's failure output is uploaded even when the build fails, so the
+      # error can be read without access to the raw run logs.
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-log
+          path: android/gradle.log
+          if-no-files-found: ignore
 
       - name: Locate APK
         id: apk
