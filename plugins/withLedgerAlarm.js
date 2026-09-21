@@ -1,17 +1,17 @@
 /**
  * withLedgerAlarm — makes Ledger's alarms behave like the phone's own clock.
  *
- * The native module in `modules/ledger-alarm` carries the behavior; this
- * plugin makes sure the *manifest* is right, and that expo-notifications ships
- * our custom sounds (a notification channel cannot play a sound file that the
- * config plugin was never told about).
+ * The behaviour lives in `modules/ledger-alarm`; this plugin makes sure the
+ * generated Android project is set up for it:
  *
- * What it does:
  *  1. Declares the alarm-clock permissions (exact scheduling, wake lock,
  *     vibration, foreground service, boot persistence, battery exemption).
  *  2. Lets MainActivity show over the lock screen and survive singleTop
  *     launches, so a full-screen alarm lands on the app you already have open.
- *  3. Registers `assets/sounds/*.wav` with expo-notifications.
+ *  3. Fails the build if the alarm sounds are missing from `assets/sounds`.
+ *     (The sounds themselves are registered with expo-notifications through
+ *     the `sounds` option in app.json — a channel cannot play a sound file the
+ *     notifications plugin was never told about.)
  */
 const {
   AndroidConfig,
@@ -46,19 +46,20 @@ const PERMISSIONS = [
 
 const SOUND_FILES = ["ledger_alarm.wav", "ledger_chime.wav", "ledger_nudge.wav"];
 
-/** 1 + 2: manifest. */
+/** Manifest: permissions + a MainActivity that can take over the lock screen. */
 const withAlarmManifest = (config) =>
   withAndroidManifest(config, (config) => {
-    config.modResults = AndroidConfig.Permissions.withPermissions(config.modResults, PERMISSIONS);
+    // NOTE: `AndroidConfig.Permissions.withPermissions` takes a *config*, not a
+    // manifest — assigning its result to `modResults` writes the whole mod tree
+    // into AndroidManifest.xml. `ensurePermissions` mutates the manifest, which
+    // is what we want here.
+    AndroidConfig.Permissions.ensurePermissions(config.modResults, PERMISSIONS);
 
     const application = AndroidConfig.Manifest.getMainApplicationOrThrow(config.modResults);
 
-    // The activity a full-screen intent lands on should be the app itself —
-    // resumed if it is already open, and allowed to draw over the lock screen.
+    // The activity a full-screen intent lands on should be the app itself.
     const activities = application.activity ?? [];
-    const main = activities.find(
-      (activity) => activity.$?.["android:name"] === ".MainActivity"
-    );
+    const main = activities.find((activity) => activity.$?.["android:name"] === ".MainActivity");
     if (main) {
       main.$["android:showWhenLocked"] = "true";
       main.$["android:turnScreenOn"] = "true";
@@ -69,45 +70,38 @@ const withAlarmManifest = (config) =>
     return config;
   });
 
-/** 3: hand the sound files to the expo-notifications plugin. */
-const withAlarmSounds = (config) =>
+/**
+ * A silently missing alarm tone is a broken alarm, so this is a hard failure:
+ * the build stops with the file names you need to restore.
+ */
+const withSoundCheck = (config) =>
   withDangerousMod(config, [
     "android",
     (config) => {
       const soundsDir = path.join(config.modRequest.projectRoot, "assets", "sounds");
       const missing = SOUND_FILES.filter((file) => !fs.existsSync(path.join(soundsDir, file)));
       if (missing.length > 0) {
-        // Loud on purpose: a missing sound means a silently-broken alarm.
         throw new Error(
-          `withLedgerAlarm: missing sound file(s) in assets/sounds → ${missing.join(", ")}`
+          `withLedgerAlarm: missing alarm sound(s) in assets/sounds → ${missing.join(", ")}`
         );
       }
       return config;
     },
   ]);
 
-const withLedgerAlarm = (config, props = {}) => {
-  config = withAlarmManifest(config);
-
-  // Merge our sounds into the expo-notifications plugin props rather than
-  // duplicating the plugin entry (duplicates would run the plugin twice).
+const withLedgerAlarm = (config) => {
   const plugins = config.plugins ?? [];
-  let found = false;
-  const nextPlugins = plugins.map((entry) => {
-    const name = Array.isArray(entry) ? entry[0] : entry;
-    if (name !== "expo-notifications") return entry;
-    found = true;
-    const existing = Array.isArray(entry) ? entry[1] ?? {} : {};
-    const sounds = new Set([...(existing.sounds ?? []), ...(props.sounds ?? SOUND_FILES)]);
-    return ["expo-notifications", { ...existing, sounds: [...sounds] }];
-  });
-
-  if (!found) {
-    nextPlugins.push(["expo-notifications", { sounds: props.sounds ?? SOUND_FILES }]);
+  const hasNotifications = plugins.some(
+    (entry) => (Array.isArray(entry) ? entry[0] : entry) === "expo-notifications"
+  );
+  if (!hasNotifications) {
+    throw new Error(
+      "withLedgerAlarm: expo-notifications must stay in app.json's plugin list (with its `sounds` array) — Ledger's fallback path and custom alarm tones depend on it."
+    );
   }
 
-  config.plugins = nextPlugins;
-  return withAlarmSounds(config);
+  config = withAlarmManifest(config);
+  return withSoundCheck(config);
 };
 
 module.exports = createRunOncePlugin(withLedgerAlarm, pkg.name, pkg.version);
