@@ -14,6 +14,7 @@ on:
 
 permissions:
   contents: write
+  issues: write
 
 jobs:
   apk:
@@ -77,6 +78,25 @@ jobs:
           name: gradle-log
           path: android/gradle.log
           if-no-files-found: ignore
+
+      # …and mirrored into a dedicated issue, because run logs and artifacts
+      # live behind a CDN that some networks cannot reach.
+      - name: Publish build log
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          LOG=android/gradle.log
+          [ -f "$LOG" ] || exit 0
+          tail -c 40000 "$LOG" > /tmp/tail.txt
+          { echo "Gradle failure on \`$GITHUB_SHA\`"; echo; echo '```'; cat /tmp/tail.txt; echo '```'; } > /tmp/body.md
+          NUM=$(gh issue list --state open --search "CI build log" --json number,title -q '.[] | select(.title=="CI build log") | .number' | head -n1)
+          if [ -z "$NUM" ]; then
+            gh issue create --title "CI build log" --body-file /tmp/body.md >/dev/null
+          else
+            gh issue comment "$NUM" --body-file /tmp/body.md >/dev/null
+          fi
 
       - name: Locate APK
         id: apk
