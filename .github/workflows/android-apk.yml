@@ -7,7 +7,9 @@ name: Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    # main is the release branch; arena/** is the working branch this app was
+    # built on, so pushing there also produces an APK to test with.
+    branches: [main, "arena/**"]
     tags: ["v*"]
 
 permissions:
