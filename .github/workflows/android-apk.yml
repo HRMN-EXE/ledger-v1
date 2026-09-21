@@ -92,15 +92,19 @@ jobs:
           unzip -l "$APK" | grep -i -E "\.wav|res/raw|ledger" | tee -a "$LOG" || true
           say "--- end of listing ---"
 
+          # The manifest's string pool holds every component name regardless of
+          # how AGP shortened resource paths, so read it directly.
+          STRINGS=$(unzip -p "$APK" AndroidManifest.xml | strings -e l || true)
+          say "--- manifest entries that mention Ledger's alarm machinery ---"
+          printf '%s\n' "$STRINGS" | grep -i -E "Receiver|Service|Activity" | sort -u | tee -a "$LOG" || true
+          say "--- end of manifest entries ---"
+
           AAPT=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 2>/dev/null | tail -n1 || true)
           if [ -n "$AAPT" ]; then
             say "using $AAPT"
             PERMS=$("$AAPT" dump permissions "$APK")
-            TREE=$("$AAPT" dump xmltree --file AndroidManifest.xml "$APK")
           else
-            say "aapt2 not found — falling back to raw manifest strings"
-            PERMS=$(unzip -p "$APK" AndroidManifest.xml | strings -e l || true)
-            TREE="$PERMS"
+            PERMS="$STRINGS"
           fi
 
           fail=0
@@ -121,7 +125,7 @@ jobs:
           done
 
           for COMPONENT in RingActivity RingService AlarmReceiver RingActionReceiver BootReceiver; do
-            if printf '%s' "$TREE" | grep -q "$COMPONENT"; then
+            if printf '%s' "$STRINGS" | grep -q "$COMPONENT"; then
               say "component ok: $COMPONENT"
             else
               say "MISSING component: $COMPONENT"
@@ -134,6 +138,12 @@ jobs:
             exit 1
           fi
           say "APK verified."
+
+          MERGED=$(find android/app/build/intermediates -name AndroidManifest.xml -path "*release*" | head -n1 || true)
+          if [ -n "$MERGED" ]; then
+            say "--- merged manifest ($MERGED) ---"
+            grep -E "<activity|<service|<receiver|android:name=\"expo.modules" "$MERGED" >> "$LOG" || true
+          fi
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
