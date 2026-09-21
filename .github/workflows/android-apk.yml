@@ -105,6 +105,38 @@ jobs:
           echo "path=$APK" >> "$GITHUB_OUTPUT"
           ls -lh "$APK"
 
+      # The APK has to actually contain the alarm machinery — a green build
+      # that silently dropped the sounds would be worse than a red one.
+      - name: Verify APK contents
+        run: |
+          set -e
+          APK="${{ steps.apk.outputs.path }}"
+          echo "::group::raw assets"
+          unzip -l "$APK" | grep -E "res/raw/ledger_(alarm|chime|nudge)\.wav"
+          echo "::endgroup::"
+
+          AAPT=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 2>/dev/null | tail -n1 || true)
+          if [ -n "$AAPT" ]; then
+            BADGING=$("$AAPT" dump badging "$APK")
+          else
+            BADGING=$(unzip -p "$APK" AndroidManifest.xml | strings -e l || true)
+          fi
+
+          for PERM in USE_FULL_SCREEN_INTENT SCHEDULE_EXACT_ALARM USE_EXACT_ALARM RECEIVE_BOOT_COMPLETED WAKE_LOCK FOREGROUND_SERVICE; do
+            if ! printf '%s' "$BADGING" | grep -q "$PERM"; then
+              echo "::error title=APK verification::missing permission $PERM"
+              exit 1
+            fi
+          done
+
+          for COMPONENT in RingActivity RingService AlarmReceiver RingActionReceiver BootReceiver; do
+            if ! printf '%s' "$BADGING" | grep -q "$COMPONENT"; then
+              echo "::error title=APK verification::missing component $COMPONENT"
+              exit 1
+            fi
+          done
+          echo "APK verified: alarm sounds, permissions and native components are present."
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
