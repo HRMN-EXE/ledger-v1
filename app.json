@@ -28,7 +28,6 @@
     "android": {
       "package": "com.harmansane.ledger",
       "versionCode": 1,
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "allowBackup": true,
       "icon": "./assets/icon.png",
