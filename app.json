@@ -1,0 +1,88 @@
+{
+  "expo": {
+    "name": "Ledger",
+    "slug": "ledger",
+    "version": "1.0.0",
+    "scheme": "ledger",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0B0D10",
+    "primaryColor": "#F97316",
+    "icon": "./assets/icon.png",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0B0D10"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.harmansane.ledger",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "audio",
+          "fetch"
+        ]
+      }
+    },
+    "android": {
+      "package": "com.harmansane.ledger",
+      "versionCode": 1,
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "allowBackup": true,
+      "icon": "./assets/icon.png",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0B0D10",
+        "monochromeImage": "./assets/monochrome-icon.png"
+      },
+      "permissions": [
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.USE_EXACT_ALARM",
+        "android.permission.USE_FULL_SCREEN_INTENT",
+        "android.permission.WAKE_LOCK",
+        "android.permission.VIBRATE",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.DISABLE_KEYGUARD",
+        "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"
+      ],
+      "intentFilters": []
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#F97316",
+          "defaultChannel": "ledger_ring_alarms",
+          "sounds": [
+            "assets/sounds/ledger_alarm.wav",
+            "assets/sounds/ledger_chime.wav",
+            "assets/sounds/ledger_nudge.wav"
+          ]
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 240,
+          "resizeMode": "contain",
+          "backgroundColor": "#0B0D10"
+        }
+      ],
+      "./plugins/withLedgerAlarm.js"
+    ],
+    "experiments": {
+      "typedRoutes": false
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "ledger-alarm",
+  "version": "1.0.0",
+  "description": "Native AlarmManager alarm clock for Ledger — exact alarms, lock-screen take-over, reboot persistence.",
+  "main": "src/index.ts",
+  "private": true,
+  "peerDependencies": {
+    "expo": "*",
+    "react": "*",
+    "react-native": "*"
+  }
+}
